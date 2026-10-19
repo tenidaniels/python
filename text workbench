@@ -1,0 +1,152 @@
+# Import the tkinter library and alias it as 'tk' for creating graphical user interfaces
+import tkinter as tk
+
+# Import Python's time module to measure high-precision performance and elapsed time
+import time
+
+# Define a list containing two target sentences for the user to practice typing
+SENTENCES = [
+    "Python makes it easier to build useful desktop applications.",
+    "Consistent practice helps improve typing speed and accuracy."
+]
+
+# Initialize an empty list to store the results of each completed typing attempt
+history = []
+
+# Initialize a variable to track the start time of the timer (set to None initially)
+start = None
+
+# Initialize an integer to track the current index of the active sentence in the SENTENCES list
+sentence_index = 0
+
+
+# Define a function that triggers when a key is pressed to start the timer
+def start_timer(event=None):
+    # Declare that we want to modify the global 'start' variable defined outside this function
+    global start
+    # If the timer hasn't started yet, record the current high-precision timestamp
+    if start is None:
+        start = time.perf_counter()
+
+
+# Define a helper function to calculate Words Per Minute (WPM) based on word count and elapsed seconds
+def calculate_wpm(words, seconds):
+    # Divide word count by elapsed minutes (seconds / 60), ensuring we avoid division by zero
+    return words / (seconds / 60) if seconds > 0 else 0
+
+
+# Define a function that runs when the user clicks the "Submit" button
+def submit():
+    # Declare that we want to modify the global 'start' variable
+    global start
+    # Retrieve the active target sentence corresponding to the current sentence index
+    target = SENTENCES[sentence_index]
+    # Fetch all text currently inside the text box, removing any trailing newlines or extra spaces
+    text = entry.get("1.0", "end-1c").strip()
+
+    # Check if the text box is empty or if the user hasn't started typing yet
+    if not text or start is None:
+        # Update the status label to warn the user to type something first
+        status.config(text="Type something first!")
+        # Exit the function early without processing scores
+        return
+
+    # Calculate how many seconds have elapsed since the user first pressed a key
+    seconds = time.perf_counter() - start
+    # Compute the user's typing speed in WPM using the length of their typed words
+    wpm = calculate_wpm(len(text.split()), seconds)
+
+    # Compare each word in the target sentence against what the user typed to count correct words
+    correct_words = sum(1 for e, a in zip(target.split(), text.split()) if e == a)
+    # Calculate accuracy percentage based on the target sentence length
+    accuracy = (correct_words / len(target.split())) * 100
+
+    # Determine the current attempt number based on how many items are already in history
+    attempt_num = len(history) + 1
+    # Format and append this attempt's results into our history list
+    history.append(f"Attempt {attempt_num}: {wpm:.1f} WPM | {accuracy:.0f}% accuracy")
+
+    # Update the result label to display the speed, time, and accuracy of the latest attempt
+    result.config(text=f"Speed: {wpm:.1f} WPM in {seconds:.1f}s | Accuracy: {accuracy:.0f}%")
+    # Update the records label to display the accumulated session history stack
+    records.config(text="History:\n" + "\n".join(history))
+
+    # Clear out the text entry box so the user can type again
+    entry.delete("1.0", "end")
+    # Reset the timer back to None for the next attempt
+    start = None
+    # Update the status label to confirm the attempt was successfully submitted
+    status.config(text="Attempt submitted!")
+
+
+# Define a function to switch between the available practice sentences
+def next_sentence():
+    # Declare that we are modifying the global sentence index and timer start variables
+    global sentence_index, start
+    # Advance to the next sentence index, wrapping back to 0 using the modulo operator
+    sentence_index = (sentence_index + 1) % len(SENTENCES)
+    # Update the display label to show the newly selected sentence
+    sentence_label.config(text=SENTENCES[sentence_index])
+    # Clear out any text currently inside the input box
+    entry.delete("1.0", "end")
+    # Reset the timer back to None
+    start = None
+    # Update the status label to inform the user which sentence they switched to
+    status.config(text=f"Switched to Sentence {sentence_index + 1}")
+
+
+# Create the main application window instance using Tkinter
+root = tk.Tk()
+# Set the title of the desktop window
+root.title("Typing Speed Test")
+# Set the initial width and height dimensions of the window
+root.geometry("520x450")
+
+# Create a prompt label instructing the user what to do, and pack it into the window with vertical padding
+tk.Label(root, text="Type this sentence below:", font=("Arial", 11, "bold")).pack(pady=5)
+
+# Create a label widget that displays the active target sentence with text wrapping and styling
+sentence_label = tk.Label(
+    root,
+    text=SENTENCES[sentence_index],
+    wraplength=480,
+    font=("Arial", 10, "italic"),
+    fg="white"
+)
+# Pack the sentence display label into the window
+sentence_label.pack(pady=5)
+
+# Create a multi-line Text input box where the user will type their response
+entry = tk.Text(root, height=4, width=55, font=("Arial", 10))
+# Pack the text box into the window
+entry.pack(pady=5)
+# Bind every keyboard press event in the text box to the start_timer function
+entry.bind("<KeyPress>", start_timer)
+
+# Create an intermediate frame container to hold buttons side-by-side
+btn_frame = tk.Frame(root)
+# Pack the button frame into the window
+btn_frame.pack(pady=5)
+
+# Create the "Submit" button inside the button frame, linking it to the submit function
+tk.Button(btn_frame, text="Submit", command=submit, width=12).pack(side="left", padx=5)
+# Create the "Next Sentence" button inside the button frame, linking it to the next_sentence function
+tk.Button(btn_frame, text="Next Sentence", command=next_sentence, width=12).pack(side="left", padx=5)
+
+# Create a label widget dedicated to showing the latest calculated speed and accuracy result
+result = tk.Label(root, text="Your result appears here", font=("Arial", 10))
+# Pack the result label into the window
+result.pack(pady=5)
+
+# Create a label widget to display the ongoing history of accumulated attempts
+records = tk.Label(root, text="History:", justify="left", font=("Arial", 9))
+# Pack the records label into the window
+records.pack(pady=5)
+
+# Create a status bar label at the bottom to provide feedback messages to the user
+status = tk.Label(root, text="Ready", fg="gray")
+# Pack the status label into the window
+status.pack(pady=5)
+
+# Start the Tkinter event loop to keep the application window open and responsive to user actions
+root.mainloop()
